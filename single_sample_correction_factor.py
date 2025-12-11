@@ -49,6 +49,8 @@ def construct_GC_bias(sample_lengths, ref_lengths, X):
     
     GC_array = GC_array[lower_cnt: upper_cnt+1]
     GC_array = remove_outlier(GC_array)
+    if GC_array.sum() == 0:
+        return np.ones_like(GC_array)[lag:-lag]
     GC_array = GC_array / np.mean(GC_array)
     
     lowess = sm.nonparametric.lowess(GC_array, X, frac=0.1)
