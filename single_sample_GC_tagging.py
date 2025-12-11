@@ -1,6 +1,6 @@
 import pysam
 import numpy as np
-import os, sys, subprocess, time, shutil
+import os, sys, subprocess, shutil
 from multiprocessing import Pool
 import pandas as pd
 
@@ -15,7 +15,7 @@ CPU = int(sys.argv[7])
 reference_genome_path = sys.argv[8]
 bin_location_file = sys.argv[9]
 temp_folder = sys.argv[10]
-if os.path.isdir(temp_folder)==False:
+if not os.path.isdir(temp_folder):
     os.mkdir(temp_folder)
 
 bin_locations = pd.read_csv(bin_location_file).values.tolist()

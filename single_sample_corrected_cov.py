@@ -1,6 +1,6 @@
 import pysam
 import numpy as np
-import os, sys, subprocess, time, shutil
+import sys, subprocess
 from multiprocessing import Pool
 import pandas as pd
 
