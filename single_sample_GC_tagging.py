@@ -47,7 +47,7 @@ def tag_bam(sub_bin_locations):
                 for read in bam_in.fetch(contig=contig, start=start, end=end): 
                     if (read.flag & 1024 == 0) and (read.flag & 2048 == 0) and (read.flag & 4 == 0) and (read.flag & 8 == 0):
                         if read.mapping_quality>=mapq and (read.reference_name == read.next_reference_name):
-                            length = read.template_length
+                            length = abs(read.template_length)
                             if length>=start_len and length<=end_len:
                                 ref_start = read.reference_start + lag
                                 ref_end = read.reference_start + length - lag
