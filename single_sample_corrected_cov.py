@@ -46,7 +46,7 @@ def get_cov(sub_bin_locations):
             for read in bam_in.fetch(contig=contig, start=start, end=end): 
                 if (read.flag & 1024 == 0) and (read.flag & 2048 == 0) and (read.flag & 4 == 0) and (read.flag & 8 == 0):
                     if read.mapping_quality>=mapq and (read.reference_name == read.next_reference_name):
-                        length = read.template_length
+                        length = read.template_length # NOTE: Only one read is used
                         if length>=start_len and length<=end_len:
                             ref_start = read.reference_start + lag
                             ref_end = read.reference_start + length - lag
@@ -59,7 +59,7 @@ def get_cov(sub_bin_locations):
                                 if valid_percent>=0.9:
                                     GC_content = float( GC_cnt/total_cnt )
                                     GC_content = round(round(GC_content, 2) * 100)
-                                    correction_factor = correction_factors[length-51, GC_content]
+                                    correction_factor = correction_factors[length-start_len, GC_content]
                                     cov_array[bin_index] += correction_factor
     return cov_array
 
