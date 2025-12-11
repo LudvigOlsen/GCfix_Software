@@ -33,9 +33,9 @@ cov_region_file = args.coverage_regions
 cov_folder = pathlib.Path(args.coverage_folder)
 
 if input_path.is_dir():
-    file_paths = [f for f in os.listdir(input_path) if f.endswith(".bam")]
+    file_paths = [pathlib.Path(f) for f in os.listdir(input_path) if f.endswith(".bam")]
 elif input_path.is_file() and input_path.suffix == ".bam":
-    file_paths = [str(input_path)]
+    file_paths = [input_path]
 else:
     raise ValueError(f"No existing `.bam` files were found/specified. --input: {input_path}")
 
