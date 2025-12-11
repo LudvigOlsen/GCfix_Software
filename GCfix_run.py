@@ -1,7 +1,7 @@
 import subprocess, os, time, argparse, pathlib
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--input_folder', type=str, required=True, help="Input path. Either to a BAM file or a folder full of bam files to be corrected")
+parser.add_argument('--input', type=str, required=True, help="Input path. Either to a BAM file or a folder full of bam files to be corrected")
 parser.add_argument('--output_folder', type=str, required=True, help='Output folder where the correction factors will be created')
 parser.add_argument('--MAPQ', type=int, default=30, help='Mapping quality of reads used for GC correction')
 parser.add_argument('--start_length', type=int, default=51, help='Smallest fragment length of interest')
