@@ -1,6 +1,6 @@
 import pysam
 import numpy as np
-import os, sys, subprocess, time, shutil
+import os, sys, subprocess, shutil
 from multiprocessing import Pool
 import pandas as pd
 
@@ -60,7 +60,7 @@ def tag_bam(sub_bin_locations):
                                     if valid_percent>=0.9:
                                         GC_content = float( GC_cnt/total_cnt )
                                         GC_content = round(round(GC_content, 2) * 100)
-                                        correction_factor = correction_factors[length-51, GC_content]
+                                        correction_factor = correction_factors[length-start_len, GC_content]
                                         read.set_tag("GC", correction_factor)
                                         bam_out.write(read)
     return output_bam
