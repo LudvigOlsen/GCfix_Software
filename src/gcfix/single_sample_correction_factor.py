@@ -3,16 +3,6 @@ import sys
 import pandas as pd
 import statsmodels.api as sm
 
-
-sample_GC_file = sys.argv[1]
-corr_csv = sys.argv[2]
-start_len, end_len = int(sys.argv[3]), int(sys.argv[4])
-ref_genome_GC_npy = sys.argv[5]
-
-lower_cnt, upper_cnt = 10, 90
-lag = 10
-
-
 def interpolate_zero_elements(array):
     first_non_zero_index = np.argmax(array != 0)
     last_non_zero_index = len(array) - 1 - np.argmax(array[::-1] != 0)
@@ -40,8 +30,7 @@ def remove_outlier(arr):
     arr = np.where(arr<low, low, arr)
     return arr
 
-def construct_GC_bias(sample_lengths, ref_lengths, X):
-    global lower_cnt, upper_cnt
+def construct_GC_bias(sample_lengths, ref_lengths, X, lag, lower_cnt, upper_cnt):
     sample = np.sum(sample_lengths, axis=0)
     ref = np.sum(ref_lengths, axis=0)
     safe_ref = ref + 1
@@ -65,35 +54,47 @@ def post_process_outlier(arr):
     final_thr = max(min_thr, positive_min) # ensures +ve GC bias value
     arr[arr<final_thr] = final_thr
 
+def main():
+    sample_GC_file = sys.argv[1]
+    corr_csv = sys.argv[2]
+    start_len, end_len = int(sys.argv[3]), int(sys.argv[4])
+    ref_genome_GC_npy = sys.argv[5]
 
-len_group_dic = {}
-for length in range(start_len, end_len+1):
-    start, end = length-2, length+2
-    if start<start_len:
-        start, end = start_len, start_len+4
-    elif end>end_len:
-        start, end = end_len-4, end_len
-    len_group_dic[length] = [start, end]
+    lower_cnt, upper_cnt = 10, 90
+    lag = 10
 
-ref_GC_array = np.load(ref_genome_GC_npy)
-ref_len_GC_array = process_length_level(ref_GC_array)
-sample_GC_array = np.load(sample_GC_file)
-sample_len_GC_array = process_length_level(sample_GC_array)
+    len_group_dic = {}
+    for length in range(start_len, end_len+1):
+        start, end = length-2, length+2
+        if start<start_len:
+            start, end = start_len, start_len+4
+        elif end>end_len:
+            start, end = end_len-4, end_len
+        len_group_dic[length] = [start, end]
 
-final_GC_array = np.zeros((end_len-start_len+1, 61))
-correction_factors = np.zeros((end_len-start_len+1, 101))
-X = [float(i/100) for i in range(lower_cnt, upper_cnt+1)]
-for length in range(start_len, end_len+1):
-    start_len_ind = len_group_dic[length][0] - start_len
-    end_len_ind = len_group_dic[length][1] - start_len
-    if np.sum(sample_len_GC_array[length-start_len, :])==0:
-        final_GC_array[length-start_len, :] = np.ones(final_GC_array.shape[1])
-    else:
-        final_GC_array[length-start_len, :] = construct_GC_bias(sample_len_GC_array[start_len_ind: end_len_ind+1, :], 
-                            ref_len_GC_array[start_len_ind: end_len_ind+1, :], X)
-post_process_outlier(final_GC_array)
+    ref_GC_array = np.load(ref_genome_GC_npy)
+    ref_len_GC_array = process_length_level(ref_GC_array)
+    sample_GC_array = np.load(sample_GC_file)
+    sample_len_GC_array = process_length_level(sample_GC_array)
 
-correction_factors[:, lower_cnt+lag: upper_cnt-lag+1] = 1.0/final_GC_array
-columns = [str(i) for i in range(0, 101)]
-df = pd.DataFrame(correction_factors.tolist())
-df.to_csv(corr_csv, index=False, header=columns)
+    final_GC_array = np.zeros((end_len-start_len+1, 61))
+    correction_factors = np.zeros((end_len-start_len+1, 101))
+    X = [float(i/100) for i in range(lower_cnt, upper_cnt+1)]
+    for length in range(start_len, end_len+1):
+        start_len_ind = len_group_dic[length][0] - start_len
+        end_len_ind = len_group_dic[length][1] - start_len
+        if np.sum(sample_len_GC_array[length-start_len, :])==0:
+            final_GC_array[length-start_len, :] = np.ones(final_GC_array.shape[1])
+        else:
+            final_GC_array[length-start_len, :] = construct_GC_bias(sample_len_GC_array[start_len_ind: end_len_ind+1, :], 
+                                ref_len_GC_array[start_len_ind: end_len_ind+1, :], X, lag, lower_cnt, upper_cnt)
+    post_process_outlier(final_GC_array)
+
+    correction_factors[:, lower_cnt+lag: upper_cnt-lag+1] = 1.0/final_GC_array
+    columns = [str(i) for i in range(0, 101)]
+    df = pd.DataFrame(correction_factors.tolist())
+    df.to_csv(corr_csv, index=False, header=columns)
+
+
+if __name__ == "__main__":
+    main()

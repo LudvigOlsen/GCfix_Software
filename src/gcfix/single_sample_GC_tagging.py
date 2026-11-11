@@ -1,34 +1,11 @@
+from functools import partial
 import pysam
 import numpy as np
 import os, sys, subprocess, shutil
 from multiprocessing import Pool
 import pandas as pd
 
-
-input_bam = sys.argv[1]
-output_bam = sys.argv[2]
-correction_path = sys.argv[3]
-mapq = int(sys.argv[4])
-start_len = int(sys.argv[5])
-end_len = int(sys.argv[6])
-CPU = int(sys.argv[7])
-reference_genome_path = sys.argv[8]
-bin_location_file = sys.argv[9]
-temp_folder = sys.argv[10]
-if not os.path.isdir(temp_folder):
-    os.mkdir(temp_folder)
-
-bin_locations = pd.read_csv(bin_location_file).values.tolist()
-bin_no = len(bin_locations)
-lag = 10
-
-command = f'samtools view -H {input_bam} | grep @SQ | grep chr'
-p = subprocess.run(command, shell=True, capture_output=True, text=True)
-flag = len(p.stdout)
-
-
-def tag_bam(sub_bin_locations):
-    global reference_genome_path, input_bam, bin_no, correction_path, flag
+def tag_bam(sub_bin_locations, reference_genome_path=None, input_bam=None, bin_no=None, correction_path=None, flag=None, temp_folder=None, mapq=None, start_len=None, end_len=None, lag=None):
     reference_genome = pysam.FastaFile(reference_genome_path)
     all_ref_contigs = reference_genome.references
     ref_flag = 0
@@ -65,17 +42,53 @@ def tag_bam(sub_bin_locations):
                                         bam_out.write(read)
     return output_bam
 
+def main():
+    input_bam = sys.argv[1]
+    output_bam = sys.argv[2]
+    correction_path = sys.argv[3]
+    mapq = int(sys.argv[4])
+    start_len = int(sys.argv[5])
+    end_len = int(sys.argv[6])
+    CPU = int(sys.argv[7])
+    reference_genome_path = sys.argv[8]
+    bin_location_file = sys.argv[9]
+    temp_folder = sys.argv[10]
+    if not os.path.isdir(temp_folder):
+        os.mkdir(temp_folder)
+
+    bin_locations = pd.read_csv(bin_location_file).values.tolist()
+    bin_no = len(bin_locations)
+    lag = 10
+
+    command = f'samtools view -H {input_bam} | grep @SQ | grep chr'
+    p = subprocess.run(command, shell=True, capture_output=True, text=True)
+    flag = len(p.stdout)
+
+    p = Pool(processes=CPU)
+    sub_bin_locations = np.array_split(bin_locations, CPU)
+    worker = partial(
+        tag_bam,
+        reference_genome_path=reference_genome_path, 
+        input_bam=input_bam,
+        bin_no=bin_no,
+        correction_path=correction_path,
+        flag=flag,
+        temp_folder=temp_folder,
+        mapq=mapq,
+        start_len=start_len,
+        end_len=end_len,
+        lag=lag
+    )
+    _ = p.map(worker, sub_bin_locations, 1)
+
+    p.close()
+    p.join()
 
 
-p = Pool(processes=CPU)
-sub_bin_locations = np.array_split(bin_locations, CPU)
-_ = p.map(tag_bam, sub_bin_locations, 1)
+    subprocess.run(f'samtools merge -@ 32 {temp_folder}/merged.bam {temp_folder}/split_*.bam', shell=True)
+    subprocess.run(f'samtools sort -@ 32 -o {output_bam} {temp_folder}/merged.bam', shell=True)
+    subprocess.run(f'samtools index -@ 32 {output_bam}', shell=True)
+    shutil.rmtree(temp_folder)
 
-p.close()
-p.join()
-
-
-subprocess.run(f'samtools merge -@ 32 {temp_folder}/merged.bam {temp_folder}/split_*.bam', shell=True)
-subprocess.run(f'samtools sort -@ 32 -o {output_bam} {temp_folder}/merged.bam', shell=True)
-subprocess.run(f'samtools index -@ 32 {output_bam}', shell=True)
-shutil.rmtree(temp_folder)
+if __name__ == "__main__":
+    main()
