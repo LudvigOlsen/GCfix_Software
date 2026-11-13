@@ -1,3 +1,4 @@
+from functools import partial
 import pysam
 import subprocess
 import pandas as pd
@@ -5,23 +6,7 @@ import numpy as np
 import sys
 from multiprocessing import Pool
 
-
-input_bam = sys.argv[1] 
-GC_count_npy = sys.argv[2] 
-mapq = int(sys.argv[3])
-start_len = int(sys.argv[4])
-end_len = int(sys.argv[5])
-CPU = int(sys.argv[6])
-reference_genome_path = sys.argv[7]
-bin_location_file = sys.argv[8]
-
-bin_locations = pd.read_csv(bin_location_file).values.tolist()
-lag = 10
-final_GC_array = np.zeros((end_len-start_len+1, 101))
-
-
-def count_GC(sub_bin_locations):
-    global reference_genome_path, input_bam, start_len, end_len
+def count_GC(sub_bin_locations, reference_genome_path=None, input_bam=None, start_len=None, end_len=None, mapq=None, lag=None):
     GC_array = np.zeros((end_len-start_len+1, 101))
     pybam = pysam.AlignmentFile(input_bam, "rb")
     command = 'samtools view -H {bamPath} | grep @SQ | grep chr'.format(bamPath=input_bam)
@@ -60,14 +45,37 @@ def count_GC(sub_bin_locations):
                                 GC_array[length-start_len][GC_content] += 1
     return GC_array
 
+def main():
+    input_bam = sys.argv[1] 
+    GC_count_npy = sys.argv[2] 
+    mapq = int(sys.argv[3])
+    start_len = int(sys.argv[4])
+    end_len = int(sys.argv[5])
+    CPU = int(sys.argv[6])
+    reference_genome_path = sys.argv[7]
+    bin_location_file = sys.argv[8]
 
-p = Pool(processes=CPU)
-sub_bin_locations = np.array_split(bin_locations, CPU)
-GC_array_list = p.map(count_GC, sub_bin_locations, 1)
+    bin_locations = pd.read_csv(bin_location_file).values.tolist()
+    lag = 10
+    final_GC_array = np.zeros((end_len-start_len+1, 101))
 
-p.close()
-p.join()
+    p = Pool(processes=CPU)
+    sub_bin_locations = np.array_split(bin_locations, CPU)
+    worker = partial(count_GC, 
+                     reference_genome_path=reference_genome_path, 
+                     input_bam=input_bam, 
+                     start_len=start_len, 
+                     end_len=end_len, 
+                     mapq=mapq, 
+                     lag=lag)
+    GC_array_list = p.map(worker, sub_bin_locations, 1)
 
-for i, GC_array in enumerate(GC_array_list):
-    final_GC_array = final_GC_array + GC_array
-np.save(GC_count_npy, final_GC_array)
+    p.close()
+    p.join()
+
+    for i, GC_array in enumerate(GC_array_list):
+        final_GC_array = final_GC_array + GC_array
+    np.save(GC_count_npy, final_GC_array)
+
+if __name__ == "__main__":
+    main()

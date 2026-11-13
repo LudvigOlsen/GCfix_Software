@@ -9,15 +9,14 @@ GCfix is a fast and accurate software for cell free GC correction. It provides a
 
 To get started, ensure you have the following installed:
 
-- **Python**: `3.10.6`
-- **Pysam**: `0.19.1`
-- **NumPy**: `1.23.1`
-- **Pandas**: `1.5.1`
-- **Statsmodels**: `0.14.1`
 - **Samtools**: `1.6`
 
-You can install these software libraries using `pip` or `conda`
+Clone this repository.
 
+Navigate to the repository and run 
+```
+pip install .
+```
 
 ## Running GCfix
 
@@ -27,10 +26,10 @@ You can install these software libraries using `pip` or `conda`
      - Rename `hg38_ref.fa` to `ref.fa` and place it in the `hg38/` folder.
 
 2. **Run GCfix**:
-   - Execute `GCfix_run.py` from its location using the following command:
+   - Execute `GCfix_run` from its location using the following command:
 
      ```bash
-     python GCfix_run.py --input_folder <INPUT_FOLDER> --output_folder <OUTPUT_FOLDER> --MAPQ <MAPQ> --start_length <START_LENGTH> --end_length <END_LENGTH> --CPU <CPU> --ref <REF> --ref_genome_GC <REF_GC> --GC_estimation_regions <ESTIMATION_REGIONS> --GC_tagging_flag <GC_TAGGING_FLAG> --GC_tagging_regions <GC_TAGGING_REGIONS> --GC_tagging_folder <GC_TAGGING_FOLDER> --coverage_flag <COVERAGE_FLAG> --coverage_regions <COVERAGE_REGIONS> --coverage_folder <COVERAGE_FOLDER>
+     gcfix_run --input_folder <INPUT_FOLDER> --output_folder <OUTPUT_FOLDER> --MAPQ <MAPQ> --start_length <START_LENGTH> --end_length <END_LENGTH> --CPU <CPU> --ref <REF> --ref_genome_GC <REF_GC> --GC_estimation_regions <ESTIMATION_REGIONS> --GC_tagging_flag <GC_TAGGING_FLAG> --GC_tagging_regions <GC_TAGGING_REGIONS> --GC_tagging_folder <GC_TAGGING_FOLDER> --coverage_flag <COVERAGE_FLAG> --coverage_regions <COVERAGE_REGIONS> --coverage_folder <COVERAGE_FOLDER>
      ```
 
 3. **Command Line Argument Descriptions**:
@@ -79,7 +78,7 @@ You can install these software libraries using `pip` or `conda`
 
 - **Running Command:**
     ```bash
-    python GCfix_run.py --input_folder Input_Bam/ --output_folder Sample_Output/Correction_Factors/ --MAPQ 30 --start_length 51 --end_length 400 --CPU 32 --ref hg19__GRCh37/ref.fa --ref_genome_GC hg19__GRCh37/ref_genome_GC.npy --GC_estimation_regions hg19__GRCh37/correction_factor_estimation_bin_locations.csv --GC_tagging_flag 1 --GC_tagging_regions hg19__GRCh37/GC_tagging_bin_locations.csv --GC_tagging_folder Sample_Output/Tagged_Bams/ --coverage_flag 1 --coverage_regions hg19__GRCh37/correction_factor_estimation_bin_locations.csv --coverage_folder Sample_Output/Coverage_Profiles/
+    gcfix_run --input_folder Input_Bam/ --output_folder Sample_Output/Correction_Factors/ --MAPQ 30 --start_length 51 --end_length 400 --CPU 32 --ref hg19__GRCh37/ref.fa --ref_genome_GC hg19__GRCh37/ref_genome_GC.npy --GC_estimation_regions hg19__GRCh37/correction_factor_estimation_bin_locations.csv --GC_tagging_flag 1 --GC_tagging_regions hg19__GRCh37/GC_tagging_bin_locations.csv --GC_tagging_folder Sample_Output/Tagged_Bams/ --coverage_flag 1 --coverage_regions hg19__GRCh37/correction_factor_estimation_bin_locations.csv --coverage_folder Sample_Output/Coverage_Profiles/
      ```
 - 2 sample bam files are provided in the `Input_Bam/` folder
 - GCfix output for them are provided inside the `Sample_Output/` folder:

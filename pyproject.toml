@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ['src']
+
+[project]
+name = "GCFix"
+version = "0.1.0"
+description = "Package for performing GC correction"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pysam==0.19.1",
+    "numpy==1.23.1",
+    "pandas==1.5.1",
+    "statsmodels==0.14.1",
+]
+
+[project.scripts]
+gcfix_run = "gcfix.GCfix_run:main"
+gcfix_single_sample_corrected_cov = "gcfix.single_sample_corrected_cov:main"
+gcfix_single_sample_correction_factor = "gcfix.single_sample_correction_factor:main"
+gcfix_single_sample_gc_count = "gcfix.single_sample_GC_count:main"
+gcfix_single_sample_gc_tagging = "gcfix.single_sample_GC_tagging:main"

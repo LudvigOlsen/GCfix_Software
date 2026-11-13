@@ -1,35 +1,20 @@
+from functools import partial
 import pysam
 import numpy as np
 import sys, subprocess
 from multiprocessing import Pool
 import pandas as pd
 
-
-input_bam = sys.argv[1]
-output_cov_csv = sys.argv[2]
-correction_path = sys.argv[3]
-mapq = int(sys.argv[4])
-start_len = int(sys.argv[5])
-end_len = int(sys.argv[6])
-CPU = int(sys.argv[7])
-reference_genome_path = sys.argv[8]
-bin_location_file = sys.argv[9]
-
-bin_locations = pd.read_csv(bin_location_file).values.tolist()
-bin_no = len(bin_locations)
-pro_bin_locations = []
-for i in range(len(bin_locations)):
-    pro_bin_locations.append([i, bin_locations[i][0], bin_locations[i][1], bin_locations[i][2]])
-lag = 10
-final_cov_array = np.zeros((bin_no))
-
-command = f'samtools view -H {input_bam} | grep @SQ | grep chr'
-p = subprocess.run(command, shell=True, capture_output=True, text=True)
-flag = len(p.stdout)
-
-
-def get_cov(sub_bin_locations):
-    global reference_genome_path, input_bam, bin_no, correction_path, flag
+def get_cov(sub_bin_locations, 
+            reference_genome_path=None,
+            input_bam=None,
+            bin_no=None,
+            correction_path=None,
+            flag=None,
+            mapq=None,
+            start_len=None,
+            end_len=None,
+            lag=None):
     reference_genome = pysam.FastaFile(reference_genome_path)
     all_ref_contigs = reference_genome.references
     ref_flag = 0
@@ -63,20 +48,56 @@ def get_cov(sub_bin_locations):
                                     cov_array[bin_index] += correction_factor
     return cov_array
 
+def main():
+    input_bam = sys.argv[1]
+    output_cov_csv = sys.argv[2]
+    correction_path = sys.argv[3]
+    mapq = int(sys.argv[4])
+    start_len = int(sys.argv[5])
+    end_len = int(sys.argv[6])
+    CPU = int(sys.argv[7])
+    reference_genome_path = sys.argv[8]
+    bin_location_file = sys.argv[9]
 
-p = Pool(processes=CPU)
-sub_bin_locations = np.array_split(pro_bin_locations, CPU)
-cov_array_list = p.map(get_cov, sub_bin_locations, 1)
+    bin_locations = pd.read_csv(bin_location_file).values.tolist()
+    bin_no = len(bin_locations)
+    pro_bin_locations = []
+    for i in range(len(bin_locations)):
+        pro_bin_locations.append([i, bin_locations[i][0], bin_locations[i][1], bin_locations[i][2]])
+    lag = 10
+    final_cov_array = np.zeros((bin_no))
 
-p.close()
-p.join()
+    command = f'samtools view -H {input_bam} | grep @SQ | grep chr'
+    p = subprocess.run(command, shell=True, capture_output=True, text=True)
+    flag = len(p.stdout)
 
-for i, cov_array in enumerate(cov_array_list):
-    final_cov_array = final_cov_array + cov_array
-csv_list = []
-for i in range(len(bin_locations)):
-    contig, start, end = bin_locations[i][0], bin_locations[i][1], bin_locations[i][2]
-    coverage = final_cov_array[i]
-    csv_list.append([contig, start, end, coverage])
-df = pd.DataFrame(csv_list)
-df.to_csv(output_cov_csv, index=False, header=['contig', 'start', 'end', 'coverage'])
+    p = Pool(processes=CPU)
+    sub_bin_locations = np.array_split(pro_bin_locations, CPU)
+    worker = partial(get_cov, 
+                     reference_genome_path=reference_genome_path, 
+                     input_bam=input_bam, 
+                     bin_no=bin_no, 
+                     correction_path=correction_path, 
+                     flag=flag, 
+                     mapq=mapq, 
+                     start_len=start_len, 
+                     end_len=end_len,
+                     lag=lag,
+                     )
+    cov_array_list = p.map(worker, sub_bin_locations, 1)
+
+    p.close()
+    p.join()
+
+    for i, cov_array in enumerate(cov_array_list):
+        final_cov_array = final_cov_array + cov_array
+    csv_list = []
+    for i in range(len(bin_locations)):
+        contig, start, end = bin_locations[i][0], bin_locations[i][1], bin_locations[i][2]
+        coverage = final_cov_array[i]
+        csv_list.append([contig, start, end, coverage])
+    df = pd.DataFrame(csv_list)
+    df.to_csv(output_cov_csv, index=False, header=['contig', 'start', 'end', 'coverage'])
+
+if __name__ == "__main__":
+    main()
